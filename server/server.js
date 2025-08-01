@@ -1,29 +1,33 @@
-import express from "express"
-import {graphqlHTTP} from "express-graphql"
-import schema from "./schema/schema.js"
-import mongoose from "mongoose";
-import cors from 'cors'
-const app = express()
+import express from "express";
+import { graphqlHTTP } from "express-graphql";
+import schema from "./schema/schema.js";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./config/db.js";
+import { authenticate } from "./middleware/auth.js";
+// import { graphqlUploadExpress } from "graphql-upload";
 
-app.use(cors({ origin: 'http://localhost:3000' }))
+dotenv.config();
+connectDB();
 
-mongoose.connect("mongodb://localhost:27017/graphql-books", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const app = express();
+app.use(cors({ origin: "http://localhost:3000" }));
+app.use(express.json());
+// app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 1 }));
+
+app.use(
+  "/graphql",
+  graphqlHTTP((req) => {
+    const user = authenticate(req);
+    return {
+      schema,
+      graphiql: true,
+      context: { user },
+    };
+  })
+);
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-mongoose.connection.once("open", () => {
-  console.log("✅ Connected to MongoDB");
-});
-
-
-app.use('/graphql',graphqlHTTP({
-schema,
-graphiql: true
-}))
-
-
-
-app.listen(4000, () => {
-    console.log("server is running on 4000")
-})
